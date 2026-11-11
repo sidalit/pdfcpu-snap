@@ -1,0 +1,86 @@
+name: pdfcpu
+base: core26
+version: '0.16.4'
+title: pdfcpu
+icon: snap/gui/pdfcpu.png
+summary: Validate, optimize, merge, split, encrypt and watermark PDF files
+description: |
+  pdfcpu is a PDF processor for the command line. It validates and optimizes
+  PDF files, merges and splits them, rotates, resizes and rearranges pages,
+  adds stamps and watermarks, encrypts and decrypts, fills forms, extracts
+  images, fonts and content, manages attachments, bookmarks and keywords,
+  and validates digital signatures.
+
+  **Examples**
+
+     pdfcpu validate report.pdf
+     pdfcpu optimize report.pdf smaller.pdf
+     pdfcpu merge all.pdf part1.pdf part2.pdf
+     mkdir pages && pdfcpu split book.pdf pages
+     pdfcpu encrypt --upw user --opw owner report.pdf locked.pdf
+     pdfcpu watermark add "DRAFT" "diag:1, op:.25" report.pdf draft.pdf
+
+  **File access**
+
+  pdfcpu can process files in your home directory. To also use USB drives
+  and other removable media (/media, /mnt), run:
+
+     sudo snap connect pdfcpu:removable-media
+
+  The configuration, installed fonts and trusted certificates are stored in
+  ~/snap/pdfcpu/current/.config/pdfcpu.
+license: Apache-2.0
+grade: stable
+confinement: strict
+website: https://pdfcpu.io
+source-code:
+  - https://github.com/pdfcpu/pdfcpu
+  - https://github.com/sidalit/pdfcpu-snap
+issues:
+  - https://github.com/pdfcpu/pdfcpu/issues
+  - https://github.com/sidalit/pdfcpu-snap/issues
+contact: https://github.com/sidalit/pdfcpu-snap/issues
+
+platforms:
+  amd64:
+  arm64:
+
+apps:
+  pdfcpu:
+    command: bin/pdfcpu
+    completer: share/bash-completion/completions/pdfcpu
+    environment:
+      # A session-wide XDG_CONFIG_HOME would select the host's hidden ~/.config.
+      XDG_CONFIG_HOME: $SNAP_USER_DATA/.config
+    plugs:
+      - home
+      - removable-media
+      - network
+
+parts:
+  pdfcpu:
+    plugin: go
+    source: https://github.com/pdfcpu/pdfcpu.git
+    source-tag: v$SNAPCRAFT_PROJECT_VERSION
+    source-depth: 1
+    build-snaps:
+      - go/1.27/stable
+    build-environment:
+      - CGO_ENABLED: '0'
+      - GOTOOLCHAIN: local
+    override-build: |
+      # The version, commit and date variables that upstream's release build sets.
+      go build -trimpath -o "$CRAFT_PART_INSTALL/bin/pdfcpu" -ldflags "-s -w \
+        -X main.version=$SNAPCRAFT_PROJECT_VERSION \
+        -X github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model.VersionStr=$SNAPCRAFT_PROJECT_VERSION \
+        -X main.commit=$(git rev-parse --short=8 HEAD) \
+        -X main.date=$(git log -1 --format=%cI)" ./cmd/pdfcpu
+      # The generated script calls old bash-completion helper names, which a snap
+      # only gets from the host's /etc. The prepended file defines them when missing.
+      completion="$CRAFT_PART_INSTALL/share/bash-completion/completions/pdfcpu"
+      install -Dm644 "$CRAFT_PROJECT_DIR/snap/local/completion-compat.bash" "$completion"
+      "$CRAFT_PART_INSTALL/bin/pdfcpu" completion bash >> "$completion"
+      # pdfcpu's license and the notices of the third-party code in its source tree.
+      mkdir -p "$CRAFT_PART_INSTALL/share/doc/pdfcpu"
+      cp --parents LICENSE.txt internal/filter/lzw/LICENSE pkg/pdfcpu/pkcs7/LICENSE \
+        internal/corefont/Core14_AFMs/MustRead.html "$CRAFT_PART_INSTALL/share/doc/pdfcpu"
