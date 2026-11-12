@@ -28,32 +28,14 @@ Unofficial snap packaging for [pdfcpu](https://github.com/pdfcpu/pdfcpu), a comm
 sudo snap install pdfcpu
 cd ~/Documents
 pdfcpu validate report.pdf
-pdfcpu optimize report.pdf smaller.pdf
 pdfcpu merge all.pdf part1.pdf part2.pdf
 ```
 
-Run `pdfcpu --help` for the list of commands and `pdfcpu <command> --help` for their options. Bash completion is included.
-
 ## Configure
 
-This snap has no `snap set` options. pdfcpu creates its configuration on first use, separately from a host installation:
+This snap has no `snap set` options. pdfcpu keeps its settings, installed fonts and imported certificates in `~/snap/pdfcpu/current/.config/pdfcpu`, separately from a host installation.
 
-| Data | Location |
-| --- | --- |
-| Settings | `~/snap/pdfcpu/current/.config/pdfcpu/config.yml` |
-| Fonts added with `pdfcpu fonts install` | `~/snap/pdfcpu/current/.config/pdfcpu/fonts` |
-| Certificates added with `pdfcpu certificates import` | `~/snap/pdfcpu/current/.config/pdfcpu/certs` |
-
-Edit `config.yml` with a text editor, then check it:
-
-```bash
-pdfcpu config validate
-pdfcpu config inspect
-```
-
-To keep the configuration elsewhere, pass `--conf <folder>` or set `PDFCPU_CONFIG_ROOT` to a folder the snap can access.
-
-Optional access to files under `/media` or `/mnt`:
+For files under `/media` or `/mnt`:
 
 ```bash
 sudo snap connect pdfcpu:removable-media
@@ -61,12 +43,9 @@ sudo snap connect pdfcpu:removable-media
 
 ## Limitations
 
-- Files must be in a normal folder under your home directory or on connected removable storage. Hidden folders directly under your home directory and system paths are not accessible, and `/tmp` is private to the snap: output written there is not visible outside.
-- Directly in your home directory, pdfcpu cannot replace an existing file (in place or with `--force`), and `split`, `extract` and `images extract` cannot write there, because it stages these writes in hidden temporary files. Use a subfolder such as `~/Documents`.
-- Replacing a file whose group differs from the group of your new files (for example after `chgrp`) fails with a `preserve group` error. Write to a new file instead.
-- System fonts are not visible. Copy a font file into your home directory before running `pdfcpu fonts install`.
-- The trusted certificate store starts empty, as in upstream's release binaries. Import the certificates you trust before validating signatures.
-- A configuration in the host's `~/.config/pdfcpu` is not read.
+- Files must be in a normal folder under your home directory or on connected removable storage. Hidden folders directly under your home directory are not accessible, and `/tmp` is private to the snap.
+- pdfcpu cannot replace files or write `split` and `extract` output directly in your home directory, because it uses hidden temporary files there. Work in a subfolder such as `~/Documents`.
+- System fonts are not visible: copy a font into your home directory before `pdfcpu fonts install`.
 
 ## Build
 
